@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Code Review Hub</title>
+<link rel="stylesheet" href="assets/css/base.css">
+<style>
+  /* Index-only styles */
+  .shell-main { overflow: hidden; position: relative; }
+
+  /* When no page is selected yet → show welcome */
+  #welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 14px;
+    color: var(--muted);
+    text-align: center;
+    padding: 40px;
+    animation: fadeUp 0.3s ease;
+  }
+  #welcome h2 { font-size: 20px; color: var(--text); font-weight: 600; }
+  #welcome p  { font-size: 14px; line-height: 1.7; max-width: 380px; }
+  .welcome-icon { font-size: 40px; opacity: 0.3; }
+
+  /* Cards grid shown in welcome when there are pages */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+    width: 100%;
+    max-width: 780px;
+    margin-top: 10px;
+  }
+  .page-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.15s, background 0.15s;
+    text-align: left;
+    animation: fadeUp 0.3s ease both;
+  }
+  .page-card:hover {
+    border-color: var(--accent);
+    background: var(--panel2);
+    transform: translateY(-2px);
+  }
+  .card-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .card-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .card-title { font-size: 14px; font-weight: 600; color: var(--text); flex: 1; }
+  .card-count {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .card-subtitle { font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 10px; }
+  .card-footer { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  /* Iframe viewer */
+  #pageFrame {
+    display: none;
+    width: 100%;
+    height: 100%;
+    border: none;
+    animation: fadeUp 0.2s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- Header -->
+  <header class="shell-header">
+    <div class="traffic-lights">
+      <div class="tl tl-r"></div>
+      <div class="tl tl-y"></div>
+      <div class="tl tl-g"></div>
+    </div>
+    <div class="header-brand"><strong>code-review</strong> / hub</div>
+    <div class="header-right" id="headerBadges"></div>
+  </header>
+
+  <!-- Sidebar -->
+  <nav class="shell-nav">
+    <div class="nav-section-label">Reviews</div>
+    <div class="nav-list" id="navList"></div>
+    <div class="nav-add" onclick="showAddHint()">+ Add page</div>
+  </nav>
+
+  <!-- Main area -->
+  <main class="shell-main">
+    <!-- Welcome / cards -->
+    <div id="welcome">
+      <div class="welcome-icon">🔍</div>
+      <h2>Code Review Hub</h2>
+      <p>Select a review from the sidebar, or open one of the pages below.</p>
+      <div class="cards-grid" id="cardsGrid"></div>
+    </div>
+
+    <!-- iframe for opened pages -->
+    <iframe id="pageFrame" title="Review page"></iframe>
+  </main>
+
+</div>
+
+<script src="assets/js/pages.config.js"></script>
+<script>
+  const SEV_COLOR = { critical:'var(--crit)', warning:'var(--warn)', info:'var(--info)' };
+  const SEV_LABEL = { critical:'! critical', warning:'~ warning', info:'i info' };
+
+  /* ── Build sidebar ── */
+  function buildSidebar() {
+    const list = document.getElementById('navList');
+    list.innerHTML = PAGES.map(p => `
+      <div class="nav-item" onclick="openPage('${p.file}','${p.id}')" title="${p.subtitle}">
+        <span class="nav-dot" style="background:${SEV_COLOR[p.severity]||'var(--muted)'}"></span>
+        <span class="nav-item-title">${p.title}</span>
+        <span class="nav-item-count">${p.issueCount}</span>
+      </div>`).join('');
+  }
+
+  /* ── Build welcome cards ── */
+  function buildCards() {
+    const grid = document.getElementById('cardsGrid');
+    grid.innerHTML = PAGES.map((p, i) => `
+      <div class="page-card" onclick="openPage('${p.file}','${p.id}')"
+           style="animation-delay:${i*0.05}s">
+        <div class="card-top">
+          <span class="card-dot" style="background:${SEV_COLOR[p.severity]||'var(--muted)'}"></span>
+          <span class="card-title">${p.title}.java</span>
+          <span class="card-count">${p.issueCount} issues</span>
+        </div>
+        <div class="card-subtitle">${p.subtitle}</div>
+        <div class="card-footer">
+          <span class="badge badge-${p.severity}">${SEV_LABEL[p.severity]}</span>
+          <span class="badge badge-tag">${p.tag}</span>
+          <span class="badge badge-tag">${p.date}</span>
+        </div>
+      </div>`).join('');
+  }
+
+  /* ── Build header summary badges ── */
+  function buildHeaderBadges() {
+    const counts = { critical:0, warning:0, info:0 };
+    PAGES.forEach(p => {
+      if (counts[p.severity] !== undefined) counts[p.severity]++;
+    });
+    const el = document.getElementById('headerBadges');
+    el.innerHTML = `
+      ${counts.critical ? `<span class="hbadge hbadge-crit">● ${counts.critical} critical</span>` : ''}
+      ${counts.warning  ? `<span class="hbadge hbadge-warn">● ${counts.warning} warning</span>`  : ''}
+      ${counts.info     ? `<span class="hbadge hbadge-info">● ${counts.info} info</span>`         : ''}`;
+  }
+
+  /* ── Open a review page in the iframe ── */
+  function openPage(file, id) {
+    document.getElementById('welcome').style.display    = 'none';
+    const frame = document.getElementById('pageFrame');
+    frame.style.display = 'block';
+    frame.src = file;
+
+    document.querySelectorAll('.nav-item').forEach(el =>
+      el.classList.toggle('active', el.getAttribute('onclick').includes(`'${id}'`)));
+  }
+
+  /* ── Hint for adding pages ── */
+  function showAddHint() {
+    alert('To add a new review page:\n\n1. Duplicate pages/order-service.html\n2. Update the content\n3. Add an entry to assets/js/pages.config.js\n\nThe sidebar and home cards update automatically!');
+  }
+
+  /* ── Init ── */
+  buildSidebar();
+  buildCards();
+  buildHeaderBadges();
+</script>
+</body>
+</html>

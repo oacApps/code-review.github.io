@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="page-id" content="order-service">
+<title>OrderService — Code Review</title>
+<link rel="stylesheet" href="../assets/css/base.css">
+<link rel="stylesheet" href="../assets/css/review.css">
+</head>
+<body style="overflow:hidden;height:100vh;">
+
+<!--
+  ══════════════════════════════════════════════════════
+   REVIEW: OrderService.java
+   6 issues — 2 critical, 3 warning, 1 info
+  ══════════════════════════════════════════════════════
+-->
+
+<div class="review-layout" style="height:100vh;">
+
+  <!-- ── LEFT: Code Panel ── -->
+  <div class="code-panel">
+
+    <div class="code-panel-header">
+      <span class="code-panel-filename"><span>OrderService</span>.java</span>
+      <div class="code-panel-markers">
+        <span class="mdot" style="background:var(--crit)" title="Issue 1: No @Transactional" onclick="selectTab(0)"></span>
+        <span class="mdot" style="background:var(--crit)" title="Issue 2: double for money"   onclick="selectTab(1)"></span>
+        <span class="mdot" style="background:var(--warn)" title="Issue 3: Field injection"    onclick="selectTab(2)"></span>
+        <span class="mdot" style="background:var(--warn)" title="Issue 4: No validation"      onclick="selectTab(3)"></span>
+        <span class="mdot" style="background:var(--warn)" title="Issue 5: No error handling"  onclick="selectTab(4)"></span>
+        <span class="mdot" style="background:var(--info)" title="Issue 6: No logging"         onclick="selectTab(5)"></span>
+      </div>
+    </div>
+
+    <div class="code-scroll">
+      <div class="code-block">
+
+        <div class="code-line" id="cl1">
+          <span class="line-num">1</span><span class="line-marker"></span>
+          <span class="line-content"><span class="ann">@Service</span></span>
+        </div>
+        <div class="code-line" id="cl2">
+          <span class="line-num">2</span><span class="line-marker"></span>
+          <span class="line-content"><span class="kw">public class</span> <span class="cls">OrderService</span> {</span>
+        </div>
+        <div class="code-line" id="cl3">
+          <span class="line-num">3</span><span class="line-marker m-warn">▸</span>
+          <span class="line-content">  <span class="ann">@Autowired</span></span>
+        </div>
+        <div class="code-line" id="cl4">
+          <span class="line-num">4</span><span class="line-marker m-warn">▸</span>
+          <span class="line-content">  <span class="kw">private</span> <span class="typ">OrderRepository</span> orderRepository;</span>
+        </div>
+        <div class="code-line" id="cl5">
+          <span class="line-num">5</span><span class="line-marker m-warn">▸</span>
+          <span class="line-content">  <span class="ann">@Autowired</span></span>
+        </div>
+        <div class="code-line" id="cl6">
+          <span class="line-num">6</span><span class="line-marker m-warn">▸</span>
+          <span class="line-content">  <span class="kw">private</span> <span class="typ">PaymentService</span> paymentService;</span>
+        </div>
+        <div class="code-line" id="cl7">
+          <span class="line-num">7</span><span class="line-marker"></span>
+          <span class="line-content"></span>
+        </div>
+        <div class="code-line" id="cl8">
+          <span class="line-num">8</span><span class="line-marker m-crit">!</span>
+          <span class="line-content">  <span class="kw">public</span> <span class="typ">Order</span> <span class="fn">createOrder</span>(<span class="typ">String</span> userId, <span class="typ">List</span>&lt;<span class="typ">Item</span>&gt; items) {</span>
+        </div>
+        <div class="code-line" id="cl9">
+          <span class="line-num">9</span><span class="line-marker m-warn">▸</span>
+          <span class="line-content">    <span class="cmt">// no validation on userId or items</span></span>
+        </div>
+        <div class="code-line" id="cl10">
+          <span class="line-num">10</span><span class="line-marker"></span>
+          <span class="line-content">    <span class="typ">Order</span> order <span class="op">=</span> <span class="kw">new</span> <span class="cls">Order</span>();</span>
+        </div>
+        <div class="code-line" id="cl11">
+          <span class="line-num">11</span><span class="line-marker"></span>
+          <span class="line-content">    order.<span class="fn">setUserId</span>(userId);</span>
+        </div>
+        <div class="code-line" id="cl12">
+          <span class="line-num">12</span><span class="line-marker"></span>
+          <span class="line-content">    order.<span class="fn">setItems</span>(items);</span>
+        </div>
+        <div class="code-line" id="cl13">
+          <span class="line-num">13</span><span class="line-marker"></span>
+          <span class="line-content">    order.<span class="fn">setTotal</span>(<span class="fn">calculateTotal</span>(items));</span>
+        </div>
+        <div class="code-line" id="cl14">
+          <span class="line-num">14</span><span class="line-marker m-crit">!</span>
+          <span class="line-content">    orderRepository.<span class="fn">save</span>(order); <span class="cmt">// ① persisted — no @Transactional</span></span>
+        </div>
+        <div class="code-line" id="cl15">
+          <span class="line-num">15</span><span class="line-marker m-crit">!</span>
+          <span class="line-content">    paymentService.<span class="fn">charge</span>(userId, order.<span class="fn">getTotal</span>()); <span class="cmt">// ② can throw</span></span>
+        </div>
+        <div class="code-line" id="cl16">
+          <span class="line-num">16</span><span class="line-marker m-info">i</span>
+          <span class="line-content">    <span class="cmt">// no log of order ID or outcome</span></span>
+        </div>
+        <div class="code-line" id="cl17">
+          <span class="line-num">17</span><span class="line-marker"></span>
+          <span class="line-content">    <span class="kw">return</span> order;</span>
+        </div>
+        <div class="code-line" id="cl18">
+          <span class="line-num">18</span><span class="line-marker"></span>
+          <span class="line-content">  }</span>
+        </div>
+        <div class="code-line" id="cl19">
+          <span class="line-num">19</span><span class="line-marker"></span>
+          <span class="line-content"></span>
+        </div>
+        <div class="code-line" id="cl20">
+          <span class="line-num">20</span><span class="line-marker m-crit">!</span>
+          <span class="line-content">  <span class="kw">private double</span> <span class="fn">calculateTotal</span>(<span class="typ">List</span>&lt;<span class="typ">Item</span>&gt; items) { <span class="cmt">// double ← problem</span></span>
+        </div>
+        <div class="code-line" id="cl21">
+          <span class="line-num">21</span><span class="line-marker m-crit">!</span>
+          <span class="line-content">    <span class="kw">double</span> total <span class="op">=</span> <span class="num">0</span>;</span>
+        </div>
+        <div class="code-line" id="cl22">
+          <span class="line-num">22</span><span class="line-marker"></span>
+          <span class="line-content">    <span class="kw">for</span> (<span class="typ">Item</span> item : items) {</span>
+        </div>
+        <div class="code-line" id="cl23">
+          <span class="line-num">23</span><span class="line-marker"></span>
+          <span class="line-content">      total <span class="op">+=</span> item.<span class="fn">getPrice</span>() <span class="op">*</span> item.<span class="fn">getQuantity</span>();</span>
+        </div>
+        <div class="code-line" id="cl24">
+          <span class="line-num">24</span><span class="line-marker"></span>
+          <span class="line-content">    }</span>
+        </div>
+        <div class="code-line" id="cl25">
+          <span class="line-num">25</span><span class="line-marker"></span>
+          <span class="line-content">    <span class="kw">return</span> total;</span>
+        </div>
+        <div class="code-line" id="cl26">
+          <span class="line-num">26</span><span class="line-marker"></span>
+          <span class="line-content">  }</span>
+        </div>
+        <div class="code-line" id="cl27">
+          <span class="line-num">27</span><span class="line-marker"></span>
+          <span class="line-content">}</span>
+        </div>
+
+      </div><!-- /code-block -->
+    </div><!-- /code-scroll -->
+  </div><!-- /code-panel -->
+
+
+  <!-- ── RIGHT: Issues Panel ── -->
+  <div class="issues-panel">
+
+    <!-- Tabs -->
+    <div class="tabs-bar">
+      <button class="tab-btn active" onclick="selectTab(0)">
+        <span class="tab-icon" style="color:var(--crit)">!</span> No @Transactional
+      </button>
+      <button class="tab-btn" onclick="selectTab(1)">
+        <span class="tab-icon" style="color:var(--crit)">!</span> double for money
+      </button>
+      <button class="tab-btn" onclick="selectTab(2)">
+        <span class="tab-icon" style="color:var(--warn)">~</span> Field injection
+      </button>
+      <button class="tab-btn" onclick="selectTab(3)">
+        <span class="tab-icon" style="color:var(--warn)">~</span> No validation
+      </button>
+      <button class="tab-btn" onclick="selectTab(4)">
+        <span class="tab-icon" style="color:var(--warn)">~</span> No error handling
+      </button>
+      <button class="tab-btn" onclick="selectTab(5)">
+        <span class="tab-icon" style="color:var(--info)">i</span> No logging
+      </button>
+    </div>
+
+    <!-- Issue panes -->
+    <div class="issue-content">
+
+      <!-- ── Issue 1: No @Transactional ── -->
+      <div class="issue-pane active" id="pane0">
+        <div class="issue-hdr">
+          <div class="sev-badge sev-critical">! Critical</div>
+          <div>
+            <div class="issue-title">No @Transactional — save and charge can desync</div>
+            <div class="issue-subtitle">Lines 8, 14–15 · Data integrity · Distributed systems</div>
+          </div>
+        </div>
+        <div class="sec-label">Problem</div>
+        <div class="explanation">
+          <code>orderRepository.save()</code> commits to the database, then <code>paymentService.charge()</code> runs as a separate network call.
+          If <code>charge()</code> throws — network timeout, gateway down, anything — the <strong>order row is already persisted</strong> with no payment attached.
+          The system is now in an inconsistent state: a real order exists with no financial transaction.
+        </div>
+        <div class="sec-label">Fix</div>
+        <div class="fix-block">
+          <div class="fix-block-hdr">
+            <span>Transactional Outbox Pattern</span>
+            <span class="lang-tag">Spring / JPA</span>
+          </div>
+          <div class="fix-code"><span class="ann">@Transactional</span>
+<span class="kw">public</span> <span class="typ">Order</span> <span class="fn">createOrder</span>(<span class="typ">String</span> userId, <span class="typ">List</span>&lt;<span class="typ">Item</span>&gt; items) {
+    <span class="typ">Order</span> order <span class="op">=</span> <span class="fn">buildOrder</span>(userId, items);
+    orderRepository.<span class="fn">save</span>(order);
+    <span class="cmt">// Write intent atomically; relay publishes the event</span>
+    outboxRepository.<span class="fn">save</span>(<span class="kw">new</span> <span class="cls">PaymentRequestedEvent</span>(order));
+    <span class="kw">return</span> order;
+}</div>
+        </div>
+        <div class="sec-label">Impact</div>
+        <div class="impact-grid">
+          <div class="impact-card">
+            <div class="impact-card-lbl">Without fix</div>
+            <div class="impact-card-txt">Ghost orders — product shipped, revenue never captured. Reconciliation nightmare at scale.</div>
+          </div>
+          <div class="impact-card">
+            <div class="impact-card-lbl">Alternatives</div>
+            <div class="impact-card-txt">Saga choreography, or at-least-once charge with idempotency key on the payment side.</div>
+          </div>
+        </div>
+        <div class="sec-label">Patterns</div>
+        <div class="pill-row">
+          <span class="pill">Transactional Outbox</span>
+          <span class="pill">Saga Pattern</span>
+          <span class="pill">Idempotency Keys</span>
+          <span class="pill">Spring @Transactional</span>
+        </div>
+      </div>
+
+      <!-- ── Issue 2: double for money ── -->
+      <div class="issue-pane" id="pane1">
+        <div class="issue-hdr">
+          <div class="sev-badge sev-critical">! Critical</div>
+          <div>
+            <div class="issue-title">double for money — floating-point precision loss</div>
+            <div class="issue-subtitle">Lines 20–21 · Financial accuracy · IEEE 754</div>
+          </div>
+        </div>
+        <div class="sec-label">Problem</div>
+        <div class="explanation">
+          IEEE 754 <code>double</code> cannot represent most decimal fractions exactly.
+          <code>9.99 * 3</code> evaluates to <strong>29.969999999999999</strong>, not <code>29.97</code>.
+          Accumulated across thousands of transactions these rounding errors compound into real monetary discrepancies — invisible until audited, and very hard to trace back.
+        </div>
+        <div class="sec-label">Fix</div>
+        <div class="fix-block">
+          <div class="fix-block-hdr">
+            <span>Replace with BigDecimal</span>
+            <span class="lang-tag">Java</span>
+          </div>
+          <div class="fix-code"><span class="kw">private</span> <span class="typ">BigDecimal</span> <span class="fn">calculateTotal</span>(<span class="typ">List</span>&lt;<span class="typ">Item</span>&gt; items) {
+    <span class="kw">return</span> items.<span class="fn">stream</span>()
+        .<span class="fn">map</span>(i <span class="op">-&gt;</span> i.<span class="fn">getPrice</span>()
+                   .<span class="fn">multiply</span>(<span class="typ">BigDecimal</span>.<span class="fn">valueOf</span>(i.<span class="fn">getQuantity</span>())))
+        .<span class="fn">reduce</span>(<span class="typ">BigDecimal</span>.ZERO, <span class="typ">BigDecimal</span>::<span class="fn">add</span>);
+}</div>
+        </div>
+        <div class="sec-label">Impact</div>
+        <div class="impact-grid">
+          <div class="impact-card">
+            <div class="impact-card-lbl">Without fix</div>
+            <div class="impact-card-txt">Financial mismatches in ledgers, incorrect VAT totals, regulatory compliance failures.</div>
+          </div>
+          <div class="impact-card">
+            <div class="impact-card-lbl">Storage</div>
+            <div class="impact-card-txt">Persist as <code>DECIMAL(19,4)</code> in DB. Never store money as <code>FLOAT</code> or <code>DOUBLE</code>.</div>
+          </div>
+        </div>
+        <div class="sec-label">References</div>
+        <div class="pill-row">
+          <span class="pill">java.math.BigDecimal</span>
+          <span class="pill">RoundingMode.HALF_UP</span>
+          <span class="pill">JSR 354 (Money API)</span>
+        </div>
+      </div>
+
+      <!-- ── Issue 3: Field injection ── -->
+      <div class="issue-pane" id="pane2">
+        <div class="issue-hdr">
+          <div class="sev-badge sev-warning">~ Warning</div>
+          <div>
+            <div class="issue-title">@Autowired on fields — prefer constructor injection</div>
+            <div class="issue-subtitle">Lines 3–6 · Testability · Spring best practice</div>
+          </div>
+        </div>
+        <div class="sec-label">Problem</div>
+        <div class="explanation">
+          Field injection uses reflection to bypass normal Java construction.
+          Dependencies become <strong>invisible</strong> at the API level, preventing <code>final</code> fields and breaking standard unit test construction.
+          The class is tightly coupled to the Spring container — impossible to instantiate without a full application context.
+        </div>
+        <div class="sec-label">Fix</div>
+        <div class="fix-block">
+          <div class="fix-block-hdr">
+            <span>Constructor injection</span>
+            <span class="lang-tag">Spring / Lombok</span>
+          </div>
+          <div class="fix-code"><span class="ann">@Service</span>
+<span class="ann">@RequiredArgsConstructor</span>  <span class="cmt">// Lombok generates the constructor</span>
+<span class="kw">public class</span> <span class="cls">OrderService</span> {
+    <span class="kw">private final</span> <span class="typ">OrderRepository</span> orderRepository;
+    <span class="kw">private final</span> <span class="typ">PaymentService</span>  paymentService;
+    <span class="cmt">// explicit, immutable, testable</span>
+}</div>
+        </div>
+        <div class="sec-label">Impact</div>
+        <div class="impact-grid">
+          <div class="impact-card">
+            <div class="impact-card-lbl">Testability</div>
+            <div class="impact-card-txt">Plain <code>new OrderService(mockRepo, mockPayment)</code> in unit tests — no Spring context needed.</div>
+          </div>
+          <div class="impact-card">
+            <div class="impact-card-lbl">Immutability</div>
+            <div class="impact-card-txt"><code>final</code> fields prevent accidental reassignment and simplify thread-safety reasoning.</div>
+          </div>
+        </div>
+        <div class="sec-label">Tags</div>
+        <div class="pill-row">
+          <span class="pill">Constructor Injection</span>
+          <span class="pill">@RequiredArgsConstructor</span>
+          <span class="pill">SOLID / DIP</span>
+        </div>
+      </div>
+
+      <!-- ── Issue 4: No validation ── -->
+      <div class="issue-pane" id="pane3">
+        <div class="issue-hdr">
+          <div class="sev-badge sev-warning">~ Warning</div>
+          <div>
+            <div class="issue-title">No input validation — userId and items unchecked</div>
+            <div class="issue-subtitle">Lines 8–9 · Defensive programming · Data quality</div>
+          </div>
+        </div>
+        <div class="sec-label">Problem</div>
+        <div class="explanation">
+          <code>createOrder(null, null)</code> reaches the repository layer and produces either a
+          <strong>NullPointerException</strong> deep in the stack or persists garbage data.
+          Callers receive an unguarded 500 with a JPA stack trace instead of a meaningful <code>400 Bad Request</code>.
+          Validation belongs at the service boundary, not inside repositories.
+        </div>
+        <div class="sec-label">Fix</div>
+        <div class="fix-block">
+          <div class="fix-block-hdr">
+            <span>Guard clauses + Bean Validation</span>
+            <span class="lang-tag">Jakarta Validation</span>
+          </div>
+          <div class="fix-code"><span class="kw">public</span> <span class="typ">Order</span> <span class="fn">createOrder</span>(<span class="ann">@NotBlank</span> <span class="typ">String</span> userId,
+                              <span class="ann">@NotEmpty</span> <span class="typ">List</span>&lt;<span class="ann">@Valid</span> <span class="typ">Item</span>&gt; items) {
+    <span class="cmt">// Spring validates automatically if @Validated on the class</span>
+    <span class="typ">Assert</span>.<span class="fn">hasText</span>(userId,  <span class="str">"userId must not be blank"</span>);
+    <span class="typ">Assert</span>.<span class="fn">notEmpty</span>(items, <span class="str">"order must contain at least one item"</span>);
+    ...
+}</div>
+        </div>
+        <div class="sec-label">Impact</div>
+        <div class="impact-grid">
+          <div class="impact-card">
+            <div class="impact-card-lbl">Without fix</div>
+            <div class="impact-card-txt">NPEs in production, dirty data in DB, unhelpful error messages surfaced to callers.</div>
+          </div>
+          <div class="impact-card">
+            <div class="impact-card-lbl">Best practice</div>
+            <div class="impact-card-txt">Fail fast at the boundary. Validate at the controller layer too, but always guard in the service.</div>
+          </div>
+        </div>
+        <div class="sec-label">Tags</div>
+        <div class="pill-row">
+          <span class="pill">Jakarta Validation</span>
+          <span class="pill">@Validated</span>
+          <span class="pill">Fail Fast</span>
+          <span class="pill">Defensive Programming</span>
+        </div>
+      </div>
+
+      <!-- ── Issue 5: No error handling ── -->
+      <div class="issue-pane" id="pane4">
+        <div class="issue-hdr">
+          <div class="sev-badge sev-warning">~ Warning</div>
+          <div>
+            <div class="issue-title">No error handling on payment failure</div>
+            <div class="issue-subtitle">Line 15 · Resilience · API contract</div>
+          </div>
+        </div>
+        <div class="sec-label">Problem</div>
+        <div class="explanation">
+          An uncaught <code>RuntimeException</code> from <code>paymentService.charge()</code> propagates uncontrolled.
+          Callers receive a raw 500 with internal stack trace details.
+          Payment failures are <strong>domain events</strong> — insufficient funds, card declined, gateway timeout — and each should produce a typed exception the caller can handle appropriately.
+        </div>
+        <div class="sec-label">Fix</div>
+        <div class="fix-block">
+          <div class="fix-block-hdr">
+            <span>Domain exception wrapping</span>
+            <span class="lang-tag">Exception handling</span>
+          </div>
+          <div class="fix-code"><span class="kw">try</span> {
+    paymentService.<span class="fn">charge</span>(userId, order.<span class="fn">getTotal</span>());
+} <span class="kw">catch</span> (<span class="typ">PaymentGatewayException</span> ex) {
+    log.<span class="fn">warn</span>(<span class="str">"Payment failed for order {}: {}"</span>,
+             order.<span class="fn">getId</span>(), ex.<span class="fn">getMessage</span>());
+    <span class="kw">throw new</span> <span class="cls">PaymentFailedException</span>(
+        <span class="str">"Unable to process payment for order "</span>
+        + order.<span class="fn">getId</span>(), ex);
+}</div>
+        </div>
+        <div class="sec-label">Impact</div>
+        <div class="impact-grid">
+          <div class="impact-card">
+            <div class="impact-card-lbl">Without fix</div>
+            <div class="impact-card-txt">Raw traces leak to clients, incidents are hard to diagnose, retry logic impossible to implement cleanly.</div>
+          </div>
+          <div class="impact-card">
+            <div class="impact-card-lbl">Resilience</div>
+            <div class="impact-card-txt">Pair with Resilience4j circuit breaker + retry for transient gateway failures.</div>
+          </div>
+        </div>
+        <div class="sec-label">Tags</div>
+        <div class="pill-row">
+          <span class="pill">Domain Exceptions</span>
+          <span class="pill">Circuit Breaker</span>
+          <span class="pill">Resilience4j</span>
+          <span class="pill">@ControllerAdvice</span>
+        </div>
+      </div>
+
+      <!-- ── Issue 6: No logging ── -->
+      <div class="issue-pane" id="pane5">
+        <div class="issue-hdr">
+          <div class="sev-badge sev-info">i Info</div>
+          <div>
+            <div class="issue-title">No logging or observability</div>
+            <div class="issue-subtitle">Lines 8–17 · Production readiness · Ops</div>
+          </div>
+        </div>
+        <div class="sec-label">Problem</div>
+        <div class="explanation">
+          A service that creates orders — a <strong>core business operation</strong> — emits zero telemetry.
+          When a production incident occurs there is no order ID to trace, no timing data to measure latency,
+          and no way to determine if an error happened before or after the charge. Silent services are operationally blind at scale.
+        </div>
+        <div class="sec-label">Fix</div>
+        <div class="fix-block">
+          <div class="fix-block-hdr">
+            <span>Structured logging + tracing</span>
+            <span class="lang-tag">SLF4J / Micrometer</span>
+          </div>
+          <div class="fix-code"><span class="kw">private static final</span> <span class="typ">Logger</span> log <span class="op">=</span>
+    <span class="typ">LoggerFactory</span>.<span class="fn">getLogger</span>(<span class="cls">OrderService</span>.<span class="kw">class</span>);
+
+<span class="kw">public</span> <span class="typ">Order</span> <span class="fn">createOrder</span>(...) {
+    log.<span class="fn">info</span>(<span class="str">"Creating order user={}"</span>, userId);
+    ...
+    log.<span class="fn">info</span>(<span class="str">"Order created id={} total={}"</span>,
+             order.<span class="fn">getId</span>(), order.<span class="fn">getTotal</span>());
+    <span class="cmt">// Metrics: orderCounter.increment(); latencyTimer.record(...)</span>
+    <span class="kw">return</span> order;
+}</div>
+        </div>
+        <div class="sec-label">Observability pillars</div>
+        <div class="impact-grid">
+          <div class="impact-card">
+            <div class="impact-card-lbl">Logs</div>
+            <div class="impact-card-txt">SLF4J + Logback. Structured JSON in prod. Include trace/span IDs for distributed correlation.</div>
+          </div>
+          <div class="impact-card">
+            <div class="impact-card-lbl">Metrics</div>
+            <div class="impact-card-txt">Micrometer counters for order volume, timers for latency. Expose via Prometheus → Grafana.</div>
+          </div>
+        </div>
+        <div class="sec-label">Tags</div>
+        <div class="pill-row">
+          <span class="pill">SLF4J</span>
+          <span class="pill">Micrometer</span>
+          <span class="pill">OpenTelemetry</span>
+          <span class="pill">Structured Logging</span>
+          <span class="pill">MDC</span>
+        </div>
+      </div>
+
+    </div><!-- /issue-content -->
+  </div><!-- /issues-panel -->
+</div><!-- /review-layout -->
+
+<script>
+  // Line numbers to highlight per tab index
+  window.ISSUE_LINES = {
+    0: [8, 14, 15],
+    1: [20, 21, 23],
+    2: [3, 4, 5, 6],
+    3: [8, 9],
+    4: [15],
+    5: [8, 16, 17],
+  };
+</script>
+<script src="../assets/js/review.js"></script>
+</body>
+</html>
