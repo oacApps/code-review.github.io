@@ -7,7 +7,7 @@
 <title>OrderService — Code Review</title>
 <link rel="stylesheet" href="../assets/css/base.css">
 <link rel="stylesheet" href="../assets/css/review.css">
-<link href="../assets/css/prism.css" rel="stylesheet" />
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
 
 </head>
 <body style="overflow:hidden;height:100vh;">
@@ -203,58 +203,12 @@
             <span class="lang-tag">Spring / JPA</span>
           </div>
           <div class="fix-code"><span class="ann">@Transactional</span>
-          <!--  <span class="kw">public</span> <span class="typ">Order</span> <span class="fn">createOrder</span>(<span class="typ">String</span> userId, <span class="typ">List</span>&lt;<span class="typ">Item</span>&gt; items) {
+            <span class="kw">public</span> <span class="typ">Order</span> <span class="fn">createOrder</span>(<span class="typ">String</span> userId, <span class="typ">List</span>&lt;<span class="typ">Item</span>&gt; items) {
             <span class="typ">Order</span> order <span class="op">=</span> <span class="fn">buildOrder</span>(userId, items);
             orderRepository.<span class="fn">save</span>(order);
             <span class="cmt">// Write intent atomically; relay publishes the event</span>
             outboxRepository.<span class="fn">save</span>(<span class="kw">new</span> <span class="cls">PaymentRequestedEvent</span>(order));
-            <span class="kw">return</span> order; }-->
-
-            <pre>
-              <code class="language-java">
-            @Service
-            @RequiredArgsConstructor // Generates constructor for final fields (Lombok)
-            public class OrderService {
-
-                private final OrderRepository orderRepository;
-                private final PaymentService paymentService;
-
-                @Transactional
-                public Order createOrder(String userId, List<Item> items) {
-                    // 1. Validate Input
-                    if (userId == null || items == null || items.isEmpty()) {
-                        throw new IllegalArgumentException("Invalid order details");
-                    }
-
-                    // 2. Build Object
-                    Order order = new Order();
-                    order.setUserId(userId);
-                    order.setItems(items);
-
-                    // Use BigDecimal for money!
-                    BigDecimal total = calculateTotal(items);
-                    order.setTotal(total);
-
-                    // 3. Persist and Charge
-                    orderRepository.save(order);
-                    paymentService.charge(userId, total);
-                    // If this fails, @Transactional rolls back the save
-
-                    return order;
-                }
-
-                private BigDecimal calculateTotal(List<Item> items) {
-                    return items.stream()
-                            .map(item -> item.getPrice()
-                                    .multiply(BigDecimal.valueOf(item.getQuantity())))
-                            .reduce(BigDecimal.ZERO, BigDecimal::add);
-                }
-            }
-              </code>
-            </pre>
-
-
-
+            <span class="kw">return</span> order; }
           </div>
         </div>
         <div class="sec-label">Impact</div>
@@ -543,6 +497,6 @@
   };
 </script>
 <script src="../assets/js/review.js"></script>
-<script src="../assets/js/prism.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
 </body>
 </html>
