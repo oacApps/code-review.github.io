@@ -202,8 +202,9 @@
             <span>Transactional Outbox Pattern</span>
             <span class="lang-tag">Spring / JPA</span>
           </div>
-          <div class="fix-code"><span class="ann">@Transactional</span>
-          <!--  <span class="kw">public</span> <span class="typ">Order</span> <span class="fn">createOrder</span>(<span class="typ">String</span> userId, <span class="typ">List</span>&lt;<span class="typ">Item</span>&gt; items) {
+          <div class="fix-code">
+            <!-- <span class="ann">@Transactional</span>
+           <span class="kw">public</span> <span class="typ">Order</span> <span class="fn">createOrder</span>(<span class="typ">String</span> userId, <span class="typ">List</span>&lt;<span class="typ">Item</span>&gt; items) {
             <span class="typ">Order</span> order <span class="op">=</span> <span class="fn">buildOrder</span>(userId, items);
             orderRepository.<span class="fn">save</span>(order);
             <span class="cmt">// Write intent atomically; relay publishes the event</span>
@@ -212,6 +213,7 @@
 
             <pre>
               <code>
+            @Transactional
             @Service
             @RequiredArgsConstructor // Generates constructor for final fields (Lombok)
             public class OrderService {
